@@ -54,7 +54,7 @@ class LibraryApiIntegrationTests {
 
     @Test
     void createsAuthorAndListsAuthors() throws Exception {
-        mockMvc.perform(post("/api/authors")
+        mockMvc.perform(post("/api/v1/authors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -66,7 +66,7 @@ class LibraryApiIntegrationTests {
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.name").value("Astrid Lindgren"));
 
-        mockMvc.perform(get("/api/authors"))
+        mockMvc.perform(get("/api/v1/authors"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").exists())
                 .andExpect(jsonPath("$[0].name").value("Astrid Lindgren"));
@@ -74,7 +74,7 @@ class LibraryApiIntegrationTests {
 
     @Test
     void returnsNotFoundWhenBookDoesNotExist() throws Exception {
-        mockMvc.perform(get("/api/books/999"))
+        mockMvc.perform(get("/api/v1/books/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Book with id 999 was not found"));
@@ -117,6 +117,20 @@ class LibraryApiIntegrationTests {
     }
 
     @Test
+    void findsBooksByAuthor() throws Exception {
+        long authorId = createAuthor("Selma Lagerlof");
+        long otherAuthorId = createAuthor("August Strindberg");
+        long expectedBookId = createBook("Nils Holgerssons underbara resa", "9789174297845", authorId);
+        createBook("Roda rummet", "9789174295339", otherAuthorId);
+
+        mockMvc.perform(get("/api/v1/authors/{id}/books", authorId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(expectedBookId))
+                .andExpect(jsonPath("$[0].author.id").value(authorId));
+    }
+
+    @Test
     void createsOnlyOneActiveLoanWhenTwoRequestsRunConcurrently() throws Exception {
         long authorId = createAuthor("Tove Jansson");
         long bookId = createBook("Moominpappa at Sea", "9780312608897", authorId);
@@ -151,7 +165,7 @@ class LibraryApiIntegrationTests {
     }
 
     private long createAuthor(String name) throws Exception {
-        String response = mockMvc.perform(post("/api/authors")
+        String response = mockMvc.perform(post("/api/v1/authors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -166,7 +180,7 @@ class LibraryApiIntegrationTests {
     }
 
     private long createBook(String title, String isbn, long authorId) throws Exception {
-        String response = mockMvc.perform(post("/api/books")
+        String response = mockMvc.perform(post("/api/v1/books")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

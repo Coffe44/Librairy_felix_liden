@@ -2,7 +2,9 @@ package com.example.Library_test.controller;
 
 import com.example.Library_test.dto.v1.Author.AuthorRequest;
 import com.example.Library_test.dto.v1.Author.AuthorResponse;
+import com.example.Library_test.dto.v1.Book.BookResponse;
 import com.example.Library_test.service.AuthorService;
+import com.example.Library_test.service.BookService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -17,13 +19,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/authors")
+@RequestMapping("/api/v1/authors")
 public class AuthorController {
 
     private final AuthorService authorService;
+    private final BookService bookService;
 
-    public AuthorController(AuthorService authorService) {
+    public AuthorController(AuthorService authorService, BookService bookService) {
         this.authorService = authorService;
+        this.bookService = bookService;
     }
 
     @GetMapping
@@ -39,7 +43,12 @@ public class AuthorController {
     @PostMapping
     public ResponseEntity<AuthorResponse> create(@Valid @RequestBody AuthorRequest request) {
         AuthorResponse response = authorService.create(request);
-        return ResponseEntity.created(URI.create("/api/authors/" + response.id())).body(response);
+        return ResponseEntity.created(URI.create("/api/v1/authors/" + response.id())).body(response);
+    }
+
+    @GetMapping("/{id}/books")
+    public List<BookResponse> findBooksByAuthor(@PathVariable Long id) {
+        return bookService.findByAuthorId(id);
     }
 
     @PutMapping("/{id}")

@@ -34,6 +34,16 @@ public class BookService {
         return toResponse(getBook(id));
     }
 
+    @Transactional(readOnly = true)
+    public List<BookResponse> findByAuthorId(Long authorId) {
+        if (!authorRepository.existsById(authorId)) {
+            throw new NotFoundException("Author with id " + authorId + " was not found");
+        }
+        return bookRepository.findByAuthorId(authorId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public BookResponse create(BookRequest request) {
         Author author = getAuthor(request.authorId());

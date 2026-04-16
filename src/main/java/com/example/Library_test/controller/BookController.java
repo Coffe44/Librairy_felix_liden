@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/books")
+@RequestMapping("/api/v1/books")
 public class BookController {
 
     private final BookService bookService;
@@ -39,7 +39,7 @@ public class BookController {
     @PostMapping
     public ResponseEntity<BookResponse> create(@Valid @RequestBody BookRequest request) {
         BookResponse response = bookService.create(request);
-        return ResponseEntity.created(URI.create("/api/books/" + response.id())).body(response);
+        return ResponseEntity.created(URI.create("/api/v1/books/" + response.id())).body(response);
     }
 
     @PutMapping("/{id}")
