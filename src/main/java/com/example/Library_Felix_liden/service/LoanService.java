@@ -9,7 +9,11 @@ import com.example.Library_Felix_liden.entity.Loan;
 import com.example.Library_Felix_liden.repository.BookRepository;
 import com.example.Library_Felix_liden.repository.LoanRepository;
 import java.time.LocalDate;
-import java.util.List;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,18 +29,23 @@ public class LoanService {
     }
 
     @Transactional(readOnly = true)
-    public List<LoanResponse> findAll() {
-        return loanRepository.findAll().stream()
-                .map(this::toResponse)
-                .toList();
+    @Cacheable(cacheNames = "loansPage", key = "{#pageable.pageNumber, #pageable.pageSize, #pageable.sort.toString()}")
+    public Page<LoanResponse> findAll(Pageable pageable) {
+        return loanRepository.findAll(pageable)
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "loansById", key = "#id")
     public LoanResponse findById(Long id) {
         return toResponse(getLoan(id));
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "loansPage", allEntries = true),
+            @CacheEvict(cacheNames = "booksV2Page", allEntries = true)
+    })
     public LoanResponse create(LoanRequest request) {
         Book book = getBookForLoanCreation(request.bookId());
         if (loanRepository.existsByBookIdAndReturnDateIsNull(book.getId())) {
@@ -47,6 +56,11 @@ public class LoanService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "loansById", key = "#id"),
+            @CacheEvict(cacheNames = "loansPage", allEntries = true),
+            @CacheEvict(cacheNames = "booksV2Page", allEntries = true)
+    })
     public LoanResponse returnLoan(Long id) {
         Loan loan = getLoan(id);
         if (loan.getReturnDate() != null) {
@@ -57,6 +71,11 @@ public class LoanService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "loansById", key = "#id"),
+            @CacheEvict(cacheNames = "loansPage", allEntries = true),
+            @CacheEvict(cacheNames = "booksV2Page", allEntries = true)
+    })
     public void delete(Long id) {
         Loan loan = getLoan(id);
         loanRepository.delete(loan);
@@ -65,11 +84,6 @@ public class LoanService {
     private Loan getLoan(Long id) {
         return loanRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Loan with id " + id + " was not found"));
-    }
-
-    private Book getBook(Long id) {
-        return bookRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Book with id " + id + " was not found"));
     }
 
     private Book getBookForLoanCreation(Long id) {

@@ -1,11 +1,13 @@
 package com.example.Library_Felix_liden.controller;
 
+import com.example.Library_Felix_liden.dto.PagedResponse;
 import com.example.Library_Felix_liden.dto.v1.Loan.LoanRequest;
 import com.example.Library_Felix_liden.dto.v1.Loan.LoanResponse;
 import com.example.Library_Felix_liden.service.LoanService;
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.util.List;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,8 +29,8 @@ public class LoanController {
     }
 
     @GetMapping
-    public List<LoanResponse> findAll() {
-        return loanService.findAll();
+    public PagedResponse<LoanResponse> findAll(@PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return PagedResponse.from(loanService.findAll(pageable));
     }
 
     @GetMapping("/{id}")

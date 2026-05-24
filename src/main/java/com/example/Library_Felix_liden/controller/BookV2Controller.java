@@ -2,6 +2,8 @@ package com.example.Library_Felix_liden.controller;
 
 import com.example.Library_Felix_liden.dto.v2.Book.BookListResponse;
 import com.example.Library_Felix_liden.service.BookService;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,7 +19,7 @@ public class BookV2Controller {
     }
 
     @GetMapping
-    public BookListResponse findAll() {
-        return new BookListResponse(bookService.findAllV2(), "v2");
+    public BookListResponse findAll(@PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return BookListResponse.from(bookService.findAllV2(pageable), "v2");
     }
 }

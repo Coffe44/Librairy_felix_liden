@@ -73,8 +73,10 @@ class LibraryApiIntegrationTests {
         mockMvc.perform(get("/api/v1/authors")
                         .header("Authorization", basicAuth()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").exists())
-                .andExpect(jsonPath("$[0].name").value("Astrid Lindgren"));
+                .andExpect(jsonPath("$.data[0].id").exists())
+                .andExpect(jsonPath("$.data[0].name").value("Astrid Lindgren"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20));
     }
 
     @Test
@@ -135,9 +137,9 @@ class LibraryApiIntegrationTests {
         mockMvc.perform(get("/api/v1/authors/{id}/books", authorId)
                         .header("Authorization", basicAuth()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(expectedBookId))
-                .andExpect(jsonPath("$[0].author.id").value(authorId));
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(expectedBookId))
+                .andExpect(jsonPath("$.data[0].author.id").value(authorId));
     }
 
     @Test
@@ -152,7 +154,8 @@ class LibraryApiIntegrationTests {
                 .andExpect(jsonPath("$.version").value("v2"))
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].id").value(bookId))
-                .andExpect(jsonPath("$.data[0].available").value(false));
+                .andExpect(jsonPath("$.data[0].available").value(false))
+                .andExpect(jsonPath("$.page").value(0));
     }
 
     @Test
@@ -194,6 +197,24 @@ class LibraryApiIntegrationTests {
     void rejectsUnauthenticatedRequests() throws Exception {
         mockMvc.perform(get("/api/v1/books"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void paginatesBookListEndpoints() throws Exception {
+        long authorId = createAuthor("Frank Herbert");
+        createBook("Dune", "9780441013593", authorId);
+        createBook("Dune Messiah", "9780593098233", authorId);
+
+        mockMvc.perform(get("/api/v1/books?page=0&size=1")
+                        .header("Authorization", basicAuth()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(false));
     }
 
     @Test

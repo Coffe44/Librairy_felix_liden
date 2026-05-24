@@ -8,7 +8,11 @@ import com.example.Library_Felix_liden.entity.Book;
 import com.example.Library_Felix_liden.repository.AuthorRepository;
 import com.example.Library_Felix_liden.repository.BookRepository;
 import com.example.Library_Felix_liden.repository.LoanRepository;
-import java.util.List;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,35 +30,44 @@ public class BookService {
     }
 
     @Transactional(readOnly = true)
-    public List<BookResponse> findAll() {
-        return bookRepository.findAll().stream()
-                .map(this::toResponse)
-                .toList();
+    @Cacheable(cacheNames = "booksPage", key = "{#pageable.pageNumber, #pageable.pageSize, #pageable.sort.toString()}")
+    public Page<BookResponse> findAll(Pageable pageable) {
+        return bookRepository.findAll(pageable)
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
-    public List<com.example.Library_Felix_liden.dto.v2.Book.BookResponse> findAllV2() {
-        return bookRepository.findAll().stream()
-                .map(this::toV2Response)
-                .toList();
+    @Cacheable(cacheNames = "booksV2Page", key = "{#pageable.pageNumber, #pageable.pageSize, #pageable.sort.toString()}")
+    public Page<com.example.Library_Felix_liden.dto.v2.Book.BookResponse> findAllV2(Pageable pageable) {
+        return bookRepository.findAll(pageable)
+                .map(this::toV2Response);
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "booksById", key = "#id")
     public BookResponse findById(Long id) {
         return toResponse(getBook(id));
     }
 
     @Transactional(readOnly = true)
-    public List<BookResponse> findByAuthorId(Long authorId) {
+    @Cacheable(
+            cacheNames = "booksByAuthorPage",
+            key = "{#authorId, #pageable.pageNumber, #pageable.pageSize, #pageable.sort.toString()}"
+    )
+    public Page<BookResponse> findByAuthorId(Long authorId, Pageable pageable) {
         if (!authorRepository.existsById(authorId)) {
             throw new NotFoundException("Author with id " + authorId + " was not found");
         }
-        return bookRepository.findByAuthorId(authorId).stream()
-                .map(this::toResponse)
-                .toList();
+        return bookRepository.findByAuthorId(authorId, pageable)
+                .map(this::toResponse);
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "booksPage", allEntries = true),
+            @CacheEvict(cacheNames = "booksV2Page", allEntries = true),
+            @CacheEvict(cacheNames = "booksByAuthorPage", allEntries = true)
+    })
     public BookResponse create(BookRequest request) {
         Author author = getAuthor(request.authorId());
         Book book = new Book(request.title(), request.isbn(), author);
@@ -62,6 +75,14 @@ public class BookService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "booksById", key = "#id"),
+            @CacheEvict(cacheNames = "booksPage", allEntries = true),
+            @CacheEvict(cacheNames = "booksV2Page", allEntries = true),
+            @CacheEvict(cacheNames = "booksByAuthorPage", allEntries = true),
+            @CacheEvict(cacheNames = "loansPage", allEntries = true),
+            @CacheEvict(cacheNames = "loansById", allEntries = true)
+    })
     public BookResponse update(Long id, BookRequest request) {
         Book book = getBook(id);
         Author author = getAuthor(request.authorId());
@@ -72,6 +93,14 @@ public class BookService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "booksById", key = "#id"),
+            @CacheEvict(cacheNames = "booksPage", allEntries = true),
+            @CacheEvict(cacheNames = "booksV2Page", allEntries = true),
+            @CacheEvict(cacheNames = "booksByAuthorPage", allEntries = true),
+            @CacheEvict(cacheNames = "loansPage", allEntries = true),
+            @CacheEvict(cacheNames = "loansById", allEntries = true)
+    })
     public void delete(Long id) {
         Book book = getBook(id);
         bookRepository.delete(book);
