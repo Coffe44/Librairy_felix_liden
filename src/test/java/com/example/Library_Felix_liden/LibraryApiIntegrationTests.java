@@ -269,3 +269,4 @@ class LibraryApiIntegrationTests {
         return "Basic " + encoded;
     }
 }
+
