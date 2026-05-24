@@ -207,6 +207,57 @@ class LibraryApiIntegrationTests {
                 .andExpect(header().string("Access-Control-Allow-Methods", org.hamcrest.Matchers.containsString("GET")));
     }
 
+    @Test
+    void rejectsInvalidAuthorRequest() throws Exception {
+        mockMvc.perform(post("/api/v1/authors")
+                        .header("Authorization", basicAuth())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "A"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation failed"))
+                .andExpect(jsonPath("$.details.name").exists());
+    }
+
+    @Test
+    void rejectsInvalidBookRequest() throws Exception {
+        mockMvc.perform(post("/api/v1/books")
+                        .header("Authorization", basicAuth())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "",
+                                  "isbn": "abc",
+                                  "authorId": 0
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation failed"))
+                .andExpect(jsonPath("$.details.title").exists())
+                .andExpect(jsonPath("$.details.isbn").exists())
+                .andExpect(jsonPath("$.details.authorId").exists());
+    }
+
+    @Test
+    void rejectsInvalidLoanRequest() throws Exception {
+        mockMvc.perform(post("/api/v1/loans")
+                        .header("Authorization", basicAuth())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "bookId": -1,
+                                  "borrowerName": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation failed"))
+                .andExpect(jsonPath("$.details.bookId").exists())
+                .andExpect(jsonPath("$.details.borrowerName").exists());
+    }
+
     private long createAuthor(String name) throws Exception {
         String response = mockMvc.perform(post("/api/v1/authors")
                         .header("Authorization", basicAuth())
